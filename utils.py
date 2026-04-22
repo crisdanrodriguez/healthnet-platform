@@ -7,19 +7,23 @@ from typing import Iterable
 # CONSTANTS
 # =========================
 
+# Host for all services
 LOCALHOST = "127.0.0.1"
 
+# Port numbers for each service
 AUTH_PORT = 21656
 PRESCRIPTION_PORT = 22656
 APPOINTMENT_PORT = 23656
 HOSPITAL_UDP_PORT = 25656
 HOSPITAL_TCP_PORT = 26656
 
+# Encoding and message formatting
 ENCODING = "utf-8"
 DELIMITER = "::"
 DEFAULT_BUFFER_SIZE = 4096
 HASH_SUFFIX_LENGTH = 5
 
+# Valid appointment time slots
 VALID_TIME_SLOTS = (
     "09:00",
     "10:00",
@@ -207,6 +211,7 @@ def write_appointments(filepath: str, data: dict[str, list[str]]) -> None:
         lines.extend(slots)
 
     write_file_lines(filepath, lines)
+
 
 # =========================
 # PRIVATE HELPERS
