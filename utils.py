@@ -1,6 +1,6 @@
 import hashlib
 import socket
-from typing import Iterable
+from typing import Dict, Iterable, List, Tuple
 
 
 # =========================
@@ -21,7 +21,6 @@ HOSPITAL_TCP_PORT = 26656
 ENCODING = "utf-8"
 DELIMITER = "::"
 DEFAULT_BUFFER_SIZE = 4096
-HASH_SUFFIX_LENGTH = 5
 
 # Valid appointment time slots
 VALID_TIME_SLOTS = (
@@ -60,7 +59,7 @@ def get_hash_suffix(hash_text: str) -> str:
     Returns:
         The last HASH_SUFFIX_LENGTH characters of the hash string.
     """
-    return hash_text[-HASH_SUFFIX_LENGTH:]
+    return hash_text[-5:]
 
 def build_message(*parts: object) -> str:
     """
@@ -72,7 +71,7 @@ def build_message(*parts: object) -> str:
     """
     return DELIMITER.join(str(part) for part in parts)
 
-def parse_message(message: str) -> list[str]:
+def parse_message(message: str) -> List[str]:
     """
     Split a message into its fields.
     Args:
@@ -117,7 +116,7 @@ def send_udp(sock: socket.socket, message: str, host: str, port: int) -> None:
 def receive_udp(
     sock: socket.socket, 
     buffer_size: int = DEFAULT_BUFFER_SIZE,
-) -> tuple[str, tuple[str, int]]:
+) -> Tuple[str, Tuple[str, int]]:
     """
     Receive one UDP message and return the decoded payload and sender.
     Args:
@@ -138,7 +137,7 @@ def is_valid_time_slot(time_str: str) -> bool:
     """
     return time_str in VALID_TIME_SLOT_SET
 
-def read_file_lines(filepath: str) -> list[str]:
+def read_file_lines(filepath: str) -> List[str]:
     """
     Read a file and return its stripped lines.
     Args:
@@ -173,7 +172,7 @@ def append_file_line(filepath: str, line: str) -> None:
     with open(filepath, "a", encoding = ENCODING) as file_obj:
         file_obj.write(f"{line}\n")
 
-def parse_appointments(filepath: str) -> dict[str, list[str]]:
+def parse_appointments(filepath: str) -> Dict[str, List[str]]:
     """
     Group appointment lines by doctor.
     Args:
@@ -181,7 +180,7 @@ def parse_appointments(filepath: str) -> dict[str, list[str]]:
     Returns:
         A dictionary mapping doctor names to lists of their appointment lines.
     """
-    appointments: dict[str, list[str]] = {}
+    appointments: Dict[str, List[str]] = {}
     current_doctor = None
 
     for line in read_file_lines(filepath):
@@ -198,14 +197,14 @@ def parse_appointments(filepath: str) -> dict[str, list[str]]:
 
     return appointments
 
-def write_appointments(filepath: str, data: dict[str, list[str]]) -> None:
+def write_appointments(filepath: str, data: Dict[str, List[str]]) -> None:
     """
     Write grouped appointment data back to the file format used here.
     Args:
         filepath: The path to the file to write.
         data: The grouped appointment data.
     """
-    lines: list[str] = []
+    lines: List[str] = []
     for doctor, slots in data.items():
         lines.append(doctor)
         lines.extend(slots)
