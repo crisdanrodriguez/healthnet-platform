@@ -1,25 +1,17 @@
+import sys
 import socket
 from utils import *
+
+# Appointment Server owns appointment state.
+# It reads/writes appointments.txt and responds to Hospital Server over UDP.
+# Hospital Server validates the client-facing command, then this server updates the schedule.
 
 
 APPOINTMENTS_FILE = "appointments.txt"
 
 
 def load_appointments(filepath: str) -> dict:
-    """
-    Loads appointment data from the file and groups it by doctor.
-    Expected format:
-    <Doctor Name>
-    <time> <patient_hash> <illness>
-    ...
-    <Doctor Name>
-    <time>
-    ...
-    Args:
-        filepath: The path to the appointments file.
-    Returns:
-        A dictionary mapping doctor names to lists of their appointment lines.
-    """
+    # Read the appointments file and return a dictionary mapping doctor names to their appointment lines.
     appointments = {}
     lines = read_file_lines(filepath)
 
@@ -32,6 +24,7 @@ def load_appointments(filepath: str) -> dict:
         parts = line.split()
 
         if len(parts) == 1 and ":" not in parts[0]:
+            # Doctor names are headers; following lines belong to that doctor.
             current_doctor = parts[0]
             appointments[current_doctor] = []
         else:
@@ -40,33 +33,20 @@ def load_appointments(filepath: str) -> dict:
 
     return appointments
 
-
 def write_appointments(filepath: str, appointments: dict) -> None:
-    """
-    Writes the appointment data back to the file in the expected format. 
-    Args:
-        filepath: The path to the appointments file.
-        appointments: A dictionary mapping doctor names to lists of their appointment lines.
-    """
+    # Writes the appointments dictionary back into appointments.txt.
     lines = []
 
     for doctor, slots in appointments.items():
+        # Keep the same grouped format as the original appointments.txt file.
         lines.append(doctor)
         for slot in slots:
             lines.append(slot)
 
     write_file_lines(filepath, lines)
 
-
 def get_available_slots(appointments: dict, doctor_name: str) -> list:
-    """
-    Returns a list of available time slots for the given doctor.
-    Args:
-        appointments: A dictionary mapping doctor names to lists of their appointment lines.
-        doctor_name: The name of the doctor to check availability for.
-    Returns:
-        A list of available time slots for the doctor, or None if the doctor is not found
-    """
+    # Finds the free time slots for one doctor.
     if doctor_name not in appointments:
         return None
 
@@ -75,10 +55,10 @@ def get_available_slots(appointments: dict, doctor_name: str) -> list:
     for entry in appointments[doctor_name]:
         parts = entry.split()
         if len(parts) == 1:
+            # A line with only a time means the slot has not been booked.
             available.append(parts[0])
 
     return available
-
 
 def schedule_appointment(
     appointments: dict,
@@ -87,28 +67,15 @@ def schedule_appointment(
     patient_hash: str,
     illness: str,
 ) -> tuple:
-    """
-    Attempts to schedule an appointment for a patient with a doctor at a specific time slot.
-    Args:
-        appointments: A dictionary mapping doctor names to lists of their appointment lines.
-        doctor_name: The name of the doctor to schedule with.
-        time_slot: The desired time slot for the appointment.
-        patient_hash: The hash of the patient's username.
-        illness: The illness the patient is seeking treatment for.
-    Returns:
-        A tuple containing a status string and a list of available slots (if applicable).
-    Status can be:
-        "SUCCESS" - appointment was successfully scheduled
-        "DOCTOR_NOT_FOUND" - the specified doctor does not exist
-        "TIME_NOT_AVAILABLE" - the specified time slot is already booked
-        "INVALID_TIME" - the specified time slot is not valid (e.g., not in the doctor's schedule)
-    """
+    # Tries to reserve a time slot for a patient.
     if doctor_name not in appointments:
         return "DOCTOR_NOT_FOUND", None
 
+    # Normalize so "9:00", "09:00", and "9:00am" refer to the same slot.
+    requested_time = normalize_time_slot(time_slot)
     available_slots = get_available_slots(appointments, doctor_name)
 
-    if not is_valid_time_slot(time_slot):
+    if not is_valid_time_slot(requested_time):
         return "INVALID_TIME", available_slots
 
     doctor_slots = appointments[doctor_name]
@@ -117,69 +84,42 @@ def schedule_appointment(
         parts = entry.split()
         current_time = parts[0]
 
-        if current_time == time_slot:
+        if normalize_time_slot(current_time) == requested_time:
             # free slot
             if len(parts) == 1:
-                doctor_slots[i] = f"{time_slot} {patient_hash} {illness}"
+                doctor_slots[i] = f"{current_time} {patient_hash} {illness}"
                 return "SUCCESS", None
             # occupied slot
             return "TIME_NOT_AVAILABLE", available_slots
 
     return "INVALID_TIME", available_slots
 
-
 def handle_lookup_doctor(doctor_name: str) -> str:
-    """
-    Handles a doctor availability lookup request.
-    Args:
-        doctor_name: The name of the doctor to look up.
-    Returns:
-        A response message indicating the availability of the doctor.
-    Status can be:
-        "NOT_FOUND": The specified doctor does not exist.
-        "ALL_AVAILABLE": All time slots for the doctor are available.
-        "NONE_AVAILABLE": No time slots for the doctor are available.
-        "SOME_AVAILABLE": Some time slots for the doctor are available, followed by the
-        list of available time slots.
-    """
+    # Lookup does not change the file; it only reports availability.
     appointments = load_appointments(APPOINTMENTS_FILE)
     available_slots = get_available_slots(appointments, doctor_name)
 
     if available_slots is None:
-        return build_message("LOOKUP_DOCTOR_RESP", "NOT_FOUND", doctor_name)
+        return create_message("LOOKUP_DOCTOR_RESP", "NOT_FOUND", doctor_name)
 
     if len(available_slots) == 8:
         print(f"All time blocks are available for {doctor_name}.")
-        return build_message("LOOKUP_DOCTOR_RESP", "ALL_AVAILABLE", doctor_name)
+        return create_message("LOOKUP_DOCTOR_RESP", "ALL_AVAILABLE", doctor_name)
 
     if len(available_slots) == 0:
         print(f"{doctor_name} has no time slots available.")
-        return build_message("LOOKUP_DOCTOR_RESP", "NONE_AVAILABLE", doctor_name)
+        return create_message("LOOKUP_DOCTOR_RESP", "NONE_AVAILABLE", doctor_name)
 
     print(f"{doctor_name} has some time slots available.")
-    return build_message(
+    return create_message(
         "LOOKUP_DOCTOR_RESP",
         "SOME_AVAILABLE",
         doctor_name,
         *available_slots
     )
 
-
 def handle_schedule(doctor_name: str, time_slot: str, patient_hash: str, illness: str) -> str:
-    """Handles an appointment scheduling request.
-    Args:        
-        doctor_name: The name of the doctor to schedule with.
-        time_slot: The desired time slot for the appointment.
-        patient_hash: The hash of the patient's username.
-        illness: The illness the patient is seeking treatment for.
-    Returns:
-        A response message indicating the result of the scheduling attempt.
-    Status can be:
-        "SUCCESS" - appointment was successfully scheduled
-        "DOCTOR_NOT_FOUND" - the specified doctor does not exist
-        "TIME_NOT_AVAILABLE" - the specified time slot is already booked
-        "INVALID_TIME" - the specified time slot is not valid (e.g., not in the doctor's schedule)
-    """
+    # This wrapper loads the latest file state, schedules, then saves only on success.
     appointments = load_appointments(APPOINTMENTS_FILE)
 
     status, available_slots = schedule_appointment(
@@ -201,11 +141,11 @@ def handle_schedule(doctor_name: str, time_slot: str, patient_hash: str, illness
         print(
             f"Appointment has been scheduled successfully for user {hash_suffix} with {doctor_name}."
         )
-        return build_message("SCHEDULE_RESP", "SUCCESS", doctor_name, time_slot)
+        return create_message("SCHEDULE_RESP", "SUCCESS", doctor_name, time_slot)
 
     if status == "TIME_NOT_AVAILABLE":
         print("The requested appointment time is not available.")
-        return build_message(
+        return create_message(
             "SCHEDULE_RESP",
             "TIME_NOT_AVAILABLE",
             doctor_name,
@@ -215,7 +155,7 @@ def handle_schedule(doctor_name: str, time_slot: str, patient_hash: str, illness
 
     if status == "INVALID_TIME":
         print("The requested appointment time is not available.")
-        return build_message(
+        return create_message(
             "SCHEDULE_RESP",
             "INVALID_TIME",
             doctor_name,
@@ -223,37 +163,218 @@ def handle_schedule(doctor_name: str, time_slot: str, patient_hash: str, illness
             *(available_slots or [])
         )
 
-    return build_message("SCHEDULE_RESP", "DOCTOR_NOT_FOUND", doctor_name, time_slot)
+    return create_message("SCHEDULE_RESP", "DOCTOR_NOT_FOUND", doctor_name, time_slot)
 
+def find_patient_appointment(appointments: dict, patient_hash: str):
+    # Finds the appointment that belongs to one patient hash.
+    for doctor_name, slots in appointments.items():
+        for entry in slots:
+            parts = entry.split()
+            if len(parts) >= 2:
+                time_slot = parts[0]
+                stored_patient_hash = parts[1]
+                if stored_patient_hash == patient_hash:
+                    return doctor_name, time_slot
+    return None, None
+
+def cancel_appointment(appointments: dict, patient_hash: str):
+    # Finds a patient's appointment and clears that slot.
+    for doctor_name, slots in appointments.items():
+        for i, entry in enumerate(slots):
+            parts = entry.split()
+            if len(parts) >= 2:
+                time_slot = parts[0]
+                stored_patient_hash = parts[1]
+                if stored_patient_hash == patient_hash:
+                    # Reset the line back to only the time, making the slot available again.
+                    slots[i] = time_slot
+                    return True, doctor_name, time_slot
+    return False, None, None
+
+def get_doctor_scheduled_slots(appointments: dict, doctor_name: str):
+    # Returns the booked time slots for a doctor.
+    if doctor_name not in appointments:
+        return None
+
+    scheduled = []
+    for entry in appointments[doctor_name]:
+        parts = entry.split()
+        if len(parts) >= 2:
+            scheduled.append(parts[0])
+
+    return scheduled
+
+def handle_view_appointment(patient_hash: str):
+    # View searches by patient hash because usernames are never stored in appointments.txt.
+    appointments = load_appointments(APPOINTMENTS_FILE)
+    hash_suffix = get_hash_suffix(patient_hash)
+
+    print(
+        f"Appointment Server has received a view appointment command for the user with hash suffix {hash_suffix}."
+    )
+
+    doctor_name, time_slot = find_patient_appointment(appointments, patient_hash)
+
+    if doctor_name is None:
+        print(f"The user with hash suffix {hash_suffix} has no appointment in the system.")
+        return create_message("VIEW_APPOINTMENT_RESP", "NOT_FOUND")
+
+    print(f"Returning details regarding the appointment for the user with hash suffix {hash_suffix}.")
+    return create_message("VIEW_APPOINTMENT_RESP", "FOUND", doctor_name, time_slot)
+
+def handle_cancel(patient_hash: str):
+    # Cancelling is the opposite of scheduling: replace the full record with just the time.
+    appointments = load_appointments(APPOINTMENTS_FILE)
+    hash_suffix = get_hash_suffix(patient_hash)
+
+    print(
+        f"Appointment Server has received a cancel appointment command for the user with hash suffix: {hash_suffix}."
+    )
+
+    success, doctor_name, time_slot = cancel_appointment(appointments, patient_hash)
+
+    if not success:
+        print("Error: Failed to find appointment.")
+        return create_message("CANCEL_RESP", "NOT_FOUND")
+
+    write_appointments(APPOINTMENTS_FILE, appointments)
+    print("Successfully cancelled appointment.")
+    return create_message("CANCEL_RESP", "SUCCESS", doctor_name, time_slot)
+
+def handle_view_doctor_appointments(doctor_name: str):
+    # Returns the booked slots for a doctor.
+    appointments = load_appointments(APPOINTMENTS_FILE)
+
+    print(
+        f"Appointment Server has received a request to view appointments scheduled for {doctor_name}."
+    )
+
+    scheduled_slots = get_doctor_scheduled_slots(appointments, doctor_name)
+
+    if scheduled_slots is None or len(scheduled_slots) == 0:
+        print(f"No appointments have been made for {doctor_name}.")
+        return create_message("VIEW_DOCTOR_APPOINTMENTS_RESP", "NONE", doctor_name)
+
+    print(f"Returning the scheduled appointments for {doctor_name}.")
+    return create_message(
+        "VIEW_DOCTOR_APPOINTMENTS_RESP",
+        "FOUND",
+        doctor_name,
+        *scheduled_slots
+    )
+
+def fetch_illness_and_clear_slot(appointments: dict, doctor_name: str, patient_hash: str):
+    # Finds the patient's illness for a doctor and clears the appointment after prescribing.
+    if doctor_name not in appointments:
+        return False, None, None
+
+    slots = appointments[doctor_name]
+
+    for i, entry in enumerate(slots):
+        parts = entry.split()
+        if len(parts) >= 3:
+            time_slot = parts[0]
+            stored_patient_hash = parts[1]
+            illness = " ".join(parts[2:])
+
+            if stored_patient_hash == patient_hash:
+                # Prescribing finishes the appointment, so the slot becomes free again.
+                slots[i] = time_slot
+                return True, illness, time_slot
+
+    return False, None, None
+
+def handle_prescribe_fetch(doctor_name: str, patient_hash: str):
+    # Prescription flow consumes the appointment illness, then clears the appointment slot.
+    appointments = load_appointments(APPOINTMENTS_FILE)
+    hash_suffix = get_hash_suffix(patient_hash)
+
+    print(
+        f"Appointment Server has received a request from Hospital Server regarding information about a user with hash suffix {hash_suffix} from {doctor_name}."
+    )
+
+    success, illness, time_slot = fetch_illness_and_clear_slot(
+        appointments,
+        doctor_name,
+        patient_hash
+    )
+
+    if not success:
+        return create_message("PRESCRIBE_FETCH_RESP", "NOT_FOUND")
+
+    write_appointments(APPOINTMENTS_FILE, appointments)
+
+    print("Sending back the requested information to the Hospital server.")
+    print(
+        f"Successfully removed {hash_suffix} appointment slot, {time_slot} is now free to be scheduled for tomorrow."
+    )
+
+    return create_message("PRESCRIBE_FETCH_RESP", "FOUND", illness)
 
 def main():
-    server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    server_socket.bind((LOCALHOST, APPOINTMENT_PORT))
+    # Starts the UDP Appointment Server and waits for commands from Hospital Server.
+    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as server_socket:
+        # Appointment Server is backend-only, so it receives UDP from Hospital.
+        server_socket.bind((LOCALHOST, APPOINTMENT_PORT))
 
-    print(f"Appointment Server is up and running using UDP on port {APPOINTMENT_PORT}.")
+        print(f"Appointment Server is up and running using UDP on port {APPOINTMENT_PORT}.")
 
-    while True:
-        message, addr = receive_udp(server_socket)
-        parts = parse_message(message)
+        try:
+            while True:
+                message, addr = receive_udp(server_socket)
+                parts = parse_message(message)
 
-        if not parts:
-            continue
+                if not parts:
+                    continue
 
-        command = parts[0]
+                command = parts[0]
 
-        if command == "LOOKUP_DOCTOR" and len(parts) == 2:
-            doctor_name = parts[1]
+                # Dispatch based on the command sent by Hospital Server.
+                if command == "LOOKUP_DOCTOR" and len(parts) == 2:
+                    doctor_name = parts[1]
 
-            print("The Appointment Server has received a doctor availability request.")
-            response = handle_lookup_doctor(doctor_name)
-            send_udp(server_socket, response, addr[0], addr[1])
-            print("The Appointment Server has sent the lookup result to the Hospital Server.")
+                    print("The Appointment Server has received a doctor availability request.")
+                    response = handle_lookup_doctor(doctor_name)
+                    send_udp(server_socket, response, addr[0], addr[1])
+                    print("The Appointment Server has sent the lookup result to the Hospital Server.")
 
-        elif command == "SCHEDULE" and len(parts) == 5:
-            patient_hash = parts[1]
-            doctor_name = parts[2]
-            time_slot = parts[3]
-            illness = parts[4]
+                elif command == "SCHEDULE" and len(parts) == 5:
+                    patient_hash = parts[1]
+                    doctor_name = parts[2]
+                    time_slot = parts[3]
+                    illness = parts[4]
 
-            response = handle_schedule(doctor_name, time_slot, patient_hash, illness)
-            send_udp(server_socket, response, addr[0], addr[1])
+                    response = handle_schedule(doctor_name, time_slot, patient_hash, illness)
+                    send_udp(server_socket, response, addr[0], addr[1])
+
+                elif command == "VIEW_APPOINTMENT" and len(parts) == 2:
+                    patient_hash = parts[1]
+                    response = handle_view_appointment(patient_hash)
+                    send_udp(server_socket, response, addr[0], addr[1])
+
+                elif command == "CANCEL" and len(parts) == 2:
+                    patient_hash = parts[1]
+                    response = handle_cancel(patient_hash)
+                    send_udp(server_socket, response, addr[0], addr[1])
+
+                elif command == "PRESCRIBE_FETCH" and len(parts) == 3:
+                    doctor_name = parts[1]
+                    patient_hash = parts[2]
+
+                    response = handle_prescribe_fetch(doctor_name, patient_hash)
+                    send_udp(server_socket, response, addr[0], addr[1])
+
+                elif command == "VIEW_DOCTOR_APPOINTMENTS" and len(parts) == 2:
+                    doctor_name = parts[1]
+                    response = handle_view_doctor_appointments(doctor_name)
+                    send_udp(server_socket, response, addr[0], addr[1])
+
+        except KeyboardInterrupt:
+            print("\nAppointment Server shutting down.")
+        except OSError as e:
+            print(f"Appointment Server error: {e}")
+            sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()
