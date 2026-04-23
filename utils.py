@@ -7,19 +7,20 @@ from typing import Iterable, List, Tuple
 # CONSTANTS
 # =========================
 
-# Host for all services
+# All servers run on this same machine for the project.
 LOCALHOST = "127.0.0.1"
 
-# Port numbers for each service
+# Each service gets its own port so messages go to the right process.
 AUTH_PORT = 21656
 PRESCRIPTION_PORT = 22656
 APPOINTMENT_PORT = 23656
 HOSPITAL_UDP_PORT = 25656
 HOSPITAL_TCP_PORT = 26656
 
-# Encoding and message formatting
+# Used one encoding and delimiter everywhere so all servers read messages the same way.
 ENCODING = "utf-8"
 DELIMITER = "::"
+# 4096 is much bigger than our short text messages, so it is enough for one request/response.
 DEFAULT_BUFFER_SIZE = 4096
 
 # Valid appointment time slots
@@ -50,31 +51,31 @@ def get_hash_suffix(hash_text: str) -> str:
     return hash_text[-5:]
 
 def create_message(*parts: object) -> str:
-    # Creates one message string using the project delimiter.
+    # Join the fields before sending because sockets only send bytes, not Python lists.
     return DELIMITER.join(str(part) for part in parts)
 
 def parse_message(message: str) -> List[str]:
-    # Splits a received message back into its parts.
+    # Split the received text back into command and arguments.
     return message.strip().split(DELIMITER)
 
 def send_tcp(sock: socket.socket, message: str) -> None:
-    # Sends a string message through a TCP socket.
+    # TCP is reliable, so I use sendall to make sure the full message is sent.
     sock.sendall(message.encode(ENCODING))
 
 def receive_tcp(sock: socket.socket, buffer_size: int = DEFAULT_BUFFER_SIZE) -> str:
-    # Receives one TCP message and converts it back to a string.
+    # Read the bytes from TCP and convert them back to normal text.
     data = sock.recv(buffer_size)
     return data.decode(ENCODING)
 
 def send_udp(sock: socket.socket, message: str, host: str, port: int) -> None:
-    # Sends one UDP message to a specific server port.
+    # UDP needs the destination each time because there is no connected session.
     sock.sendto(message.encode(ENCODING), (host, port))
 
 def receive_udp(
     sock: socket.socket, 
     buffer_size: int = DEFAULT_BUFFER_SIZE,
 ) -> Tuple[str, Tuple[str, int]]:
-    # Receives one UDP message and also returns who sent it.
+    # Keep the sender address so the server can reply to the correct place.
     data, addr = sock.recvfrom(buffer_size)
     return data.decode(ENCODING), addr
 
@@ -82,6 +83,7 @@ def normalize_time_slot(time_str: str) -> str:
     # Converts time inputs like "09:00" or "9:00am" into the format used by appointments.txt.
     value = time_str.strip().lower().replace(" ", "")
 
+    # Handle optional "am"/"pm" suffixes and remove them from the value for further processing.
     period = None
     if value.endswith("am"):
         period = "am"
@@ -90,9 +92,7 @@ def normalize_time_slot(time_str: str) -> str:
         period = "pm"
         value = value[:-2]
 
-    if ":" not in value:
-        return time_str.strip()
-
+    # Validate the remaining time format and convert to 24-hour time if needed.
     hour_text, minute_text = value.split(":", 1)
     if not hour_text.isdigit() or not minute_text.isdigit():
         return time_str.strip()
@@ -112,7 +112,7 @@ def is_valid_time_slot(time_str: str) -> bool:
     return normalize_time_slot(time_str) in VALID_TIME_SLOT_SET
 
 def read_file_lines(filepath: str) -> List[str]:
-    # Reads all lines from a text file.
+    # Read a data file and strip newlines so parsing is easier later.
     try:
         with open(filepath, "r", encoding = ENCODING) as file_obj:
             return [line.strip() for line in file_obj.readlines()]
@@ -121,12 +121,12 @@ def read_file_lines(filepath: str) -> List[str]:
         return []
 
 def write_file_lines(filepath: str, lines: Iterable[str]) -> None:
-    # Writes a list of lines to a file.
+    # Rewrite the whole file when the appointment state changes.
     with open(filepath, "w", encoding = ENCODING) as file_obj:
         for line in lines:
             file_obj.write(f"{line}\n")
 
 def append_file_line(filepath: str, line: str) -> None:
-    # Adds one line at the end of a file.
+    # Append is enough for prescriptions because old records do not need to be changed.
     with open(filepath, "a", encoding = ENCODING) as file_obj:
         file_obj.write(f"{line}\n")

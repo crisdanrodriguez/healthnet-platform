@@ -24,11 +24,12 @@ def load_appointments(filepath: str) -> dict:
         parts = line.split()
 
         if len(parts) == 1 and ":" not in parts[0]:
-            # Doctor names are headers; following lines belong to that doctor.
+            # A doctor name starts a new group of time slots.
             current_doctor = parts[0]
             appointments[current_doctor] = []
         else:
             if current_doctor is not None:
+                # Keep the original slot line so booked slots keep patient/illness data.
                 appointments[current_doctor].append(line)
 
     return appointments
@@ -85,11 +86,11 @@ def schedule_appointment(
         current_time = parts[0]
 
         if normalize_time_slot(current_time) == requested_time:
-            # free slot
             if len(parts) == 1:
+                # Save patient hash and illness on the slot when it is still free.
                 doctor_slots[i] = f"{current_time} {patient_hash} {illness}"
                 return "SUCCESS", None
-            # occupied slot
+            # If there is already patient data, the slot is taken.
             return "TIME_NOT_AVAILABLE", available_slots
 
     return "INVALID_TIME", available_slots
@@ -132,15 +133,11 @@ def handle_schedule(doctor_name: str, time_slot: str, patient_hash: str, illness
 
     hash_suffix = get_hash_suffix(patient_hash)
 
-    print(
-        f"Appointment scheduling request received (time: {time_slot}, doctor: {doctor_name}, patient hash suffix: {hash_suffix}, illness: {illness})."
-    )
+    print(f"Appointment scheduling request received (time: {time_slot}, doctor: {doctor_name}, patient hash suffix: {hash_suffix}, illness: {illness}).")
 
     if status == "SUCCESS":
         write_appointments(APPOINTMENTS_FILE, appointments)
-        print(
-            f"Appointment has been scheduled successfully for user {hash_suffix} with {doctor_name}."
-        )
+        print(f"Appointment has been scheduled successfully for user {hash_suffix} with {doctor_name}.")
         return create_message("SCHEDULE_RESP", "SUCCESS", doctor_name, time_slot)
 
     if status == "TIME_NOT_AVAILABLE":
@@ -209,9 +206,7 @@ def handle_view_appointment(patient_hash: str):
     appointments = load_appointments(APPOINTMENTS_FILE)
     hash_suffix = get_hash_suffix(patient_hash)
 
-    print(
-        f"Appointment Server has received a view appointment command for the user with hash suffix {hash_suffix}."
-    )
+    print(f"Appointment Server has received a view appointment command for the user with hash suffix {hash_suffix}.")
 
     doctor_name, time_slot = find_patient_appointment(appointments, patient_hash)
 
@@ -227,9 +222,7 @@ def handle_cancel(patient_hash: str):
     appointments = load_appointments(APPOINTMENTS_FILE)
     hash_suffix = get_hash_suffix(patient_hash)
 
-    print(
-        f"Appointment Server has received a cancel appointment command for the user with hash suffix: {hash_suffix}."
-    )
+    print(f"Appointment Server has received a cancel appointment command for the user with hash suffix: {hash_suffix}.")
 
     success, doctor_name, time_slot = cancel_appointment(appointments, patient_hash)
 
@@ -245,9 +238,7 @@ def handle_view_doctor_appointments(doctor_name: str):
     # Returns the booked slots for a doctor.
     appointments = load_appointments(APPOINTMENTS_FILE)
 
-    print(
-        f"Appointment Server has received a request to view appointments scheduled for {doctor_name}."
-    )
+    print(f"Appointment Server has received a request to view appointments scheduled for {doctor_name}.")
 
     scheduled_slots = get_doctor_scheduled_slots(appointments, doctor_name)
 
@@ -289,9 +280,7 @@ def handle_prescribe_fetch(doctor_name: str, patient_hash: str):
     appointments = load_appointments(APPOINTMENTS_FILE)
     hash_suffix = get_hash_suffix(patient_hash)
 
-    print(
-        f"Appointment Server has received a request from Hospital Server regarding information about a user with hash suffix {hash_suffix} from {doctor_name}."
-    )
+    print(f"Appointment Server has received a request from Hospital Server regarding information about a user with hash suffix {hash_suffix} from {doctor_name}.")
 
     success, illness, time_slot = fetch_illness_and_clear_slot(
         appointments,
@@ -305,9 +294,7 @@ def handle_prescribe_fetch(doctor_name: str, patient_hash: str):
     write_appointments(APPOINTMENTS_FILE, appointments)
 
     print("Sending back the requested information to the Hospital server.")
-    print(
-        f"Successfully removed {hash_suffix} appointment slot, {time_slot} is now free to be scheduled for tomorrow."
-    )
+    print(f"Successfully removed {hash_suffix} appointment slot, {time_slot} is now free to be scheduled for tomorrow.")
 
     return create_message("PRESCRIBE_FETCH_RESP", "FOUND", illness)
 
@@ -322,6 +309,7 @@ def main():
         try:
             while True:
                 message, addr = receive_udp(server_socket)
+                # Every UDP request starts with a command, then the values needed for it.
                 parts = parse_message(message)
 
                 if not parts:
@@ -335,6 +323,7 @@ def main():
 
                     print("The Appointment Server has received a doctor availability request.")
                     response = handle_lookup_doctor(doctor_name)
+                    # Reply to the same Hospital Server UDP port that sent this request.
                     send_udp(server_socket, response, addr[0], addr[1])
                     print("The Appointment Server has sent the lookup result to the Hospital Server.")
 

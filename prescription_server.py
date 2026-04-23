@@ -44,9 +44,7 @@ def handle_save_prescription(doctor_name: str, patient_hash: str, treatment: str
     # Saves a new prescription line to prescriptions.txt.
     hash_suffix = get_hash_suffix(patient_hash)
 
-    print(
-        f"Prescription Server has received a request from {doctor_name} to prescribe the user with hash suffix {hash_suffix}."
-    )
+    print(f"Prescription Server has received a request from {doctor_name} to prescribe the user with hash suffix {hash_suffix}.")
 
     # I append instead of rewriting because prescriptions work like records/history.
     line = f"{doctor_name} {patient_hash} {treatment} {frequency}"
@@ -59,9 +57,7 @@ def handle_view_prescription(patient_hash: str):
     # Returns the prescription for a patient if one exists.
     hash_suffix = get_hash_suffix(patient_hash)
 
-    print(
-        f"The prescription server has received a request to view the prescription for the user with hash suffix: {hash_suffix}."
-    )
+    print(f"The prescription server has received a request to view the prescription for the user with hash suffix: {hash_suffix}.")
 
     # The patient hash is the shared key between appointments and prescriptions.
     doctor_name, treatment, frequency = find_prescription(PRESCRIPTIONS_FILE, patient_hash)
@@ -79,6 +75,7 @@ def handle_view_prescription(patient_hash: str):
         frequency
     )
 
+
 def main():
     # Starts the UDP Prescription Server and waits for Hospital Server requests.
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as server_socket:
@@ -90,6 +87,7 @@ def main():
         try:
             while True:
                 message, addr = receive_udp(server_socket)
+                # Parse the UDP message so I can choose save or view behavior.
                 parts = parse_message(message)
 
                 if not parts:
@@ -110,6 +108,7 @@ def main():
                         treatment,
                         frequency,
                     )
+                    # Send the result back to Hospital Server, not directly to the client.
                     send_udp(server_socket, response, addr[0], addr[1])
 
                 elif command == "VIEW_PRESCRIPTION" and len(parts) == 2:

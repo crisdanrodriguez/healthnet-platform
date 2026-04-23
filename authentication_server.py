@@ -41,6 +41,7 @@ def main():
         try:
             while True:
                 message, addr = receive_udp(server_socket)
+                # The first field tells me what kind of backend request this is.
                 parts = parse_message(message)
 
                 if not parts:
@@ -56,9 +57,7 @@ def main():
                 password_hash = parts[2]
                 hash_suffix = get_hash_suffix(username_hash)
 
-                print(
-                    f"Authentication Server has received an authentication request for a user with hash suffix: {hash_suffix}."
-                )
+                print(f"Authentication Server has received an authentication request for a user with hash suffix: {hash_suffix}.")
 
                 # A valid login must match the exact username hash and password hash.
                 if authenticate(users, username_hash, password_hash):
@@ -68,6 +67,7 @@ def main():
                     print(f"Authentication failed for a user with hash suffix: {hash_suffix}.")
                     response = "AUTH_FAIL"
 
+                # Reply back to Hospital Server using the address from recvfrom.
                 send_udp(server_socket, response, addr[0], addr[1])
 
                 print("The Authentication Server has sent the authentication result to the Hospital Server.")

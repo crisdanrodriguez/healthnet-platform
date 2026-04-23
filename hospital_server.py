@@ -81,9 +81,7 @@ def handle_auth_request(client_message: str, udp_socket: socket.socket):
     password_hash = parts[2]
     hash_suffix = get_hash_suffix(username_hash)
 
-    print(
-        f"Hospital Server received an authentication request from a user with hash suffix {hash_suffix}."
-    )
+    print(f"Hospital Server received an authentication request from a user with hash suffix {hash_suffix}.")
 
     # Forward the hashed credentials to Authentication Server over UDP.
     auth_message = create_message("AUTH", username_hash, password_hash)
@@ -93,14 +91,10 @@ def handle_auth_request(client_message: str, udp_socket: socket.socket):
 
     auth_response, _ = receive_udp(udp_socket)
 
-    print(
-        f"Hospital server has received the response from the authentication server using UDP over port {HOSPITAL_UDP_PORT}."
-    )
+    print(f"Hospital server has received the response from the authentication server using UDP over port {HOSPITAL_UDP_PORT}.")
 
     if auth_response == "AUTH_OK":
-        print(
-            f"User with a hash suffix {hash_suffix} has been granted access to the system. Determining the access of the user."
-        )
+        print(f"User with a hash suffix {hash_suffix} has been granted access to the system. Determining the access of the user.")
 
         # After authentication succeeds, hospital.txt determines the user role.
         doctor_hashes = load_doctor_hashes(HOSPITAL_FILE)
@@ -116,6 +110,7 @@ def handle_auth_request(client_message: str, udp_socket: socket.socket):
     return "AUTH_FAIL"
 
 def handle_lookup_request(client_message: str):
+    # This lookup is handled locally because hospital.txt already has the doctor names.
     parts = parse_message(client_message)
 
     if len(parts) != 2 or parts[0] != "LOOKUP":
@@ -124,23 +119,18 @@ def handle_lookup_request(client_message: str):
     user_hash = parts[1]
     hash_suffix = get_hash_suffix(user_hash)
 
-    print(
-        f"Hospital Server received a lookup request from a user with a hash suffix {hash_suffix} over port {HOSPITAL_TCP_PORT}."
-    )
+    print(f"Hospital Server received a lookup request from a user with a hash suffix {hash_suffix} over port {HOSPITAL_TCP_PORT}.")
 
     # General lookup only returns the doctor list from hospital.txt.
     # A second command, LOOKUP_DOCTOR, asks Appointment Server for availability.
     doctors = get_doctor_list(HOSPITAL_FILE)
 
     print("Hospital Server sent the doctor lookup request to the Appointment server.")
-    print(
-        f"Hospital Server has received the response from Appointment Server using UDP over port {HOSPITAL_UDP_PORT}."
-    )
+    print(f"Hospital Server has received the response from Appointment Server using UDP over port {HOSPITAL_UDP_PORT}.")
 
     print("Hospital Server has sent the doctor lookup to the client.")
 
     return create_message("LOOKUP_RESP", *doctors)
-
 
 def handle_lookup_doctor_request(client_message: str, udp_socket: socket.socket):
     # Doctor-specific lookup flow goes through Appointment Server because it owns availability.
@@ -153,9 +143,7 @@ def handle_lookup_doctor_request(client_message: str, udp_socket: socket.socket)
     doctor_name = parts[2]
     hash_suffix = get_hash_suffix(user_hash)
 
-    print(
-        f"Hospital Server has received a lookup request from a user with hash suffix {hash_suffix} to lookup {doctor_name} availability using TCP over port {HOSPITAL_TCP_PORT}."
-    )
+    print(f"Hospital Server has received a lookup request from a user with hash suffix {hash_suffix} to lookup {doctor_name} availability using TCP over port {HOSPITAL_TCP_PORT}.")
 
     # Specific doctor availability is owned by the Appointment Server.
     request = create_message("LOOKUP_DOCTOR", doctor_name)
@@ -165,9 +153,7 @@ def handle_lookup_doctor_request(client_message: str, udp_socket: socket.socket)
 
     response, _ = receive_udp(udp_socket)
 
-    print(
-        f"Hospital Server has received the response from Appointment Server using UDP over port {HOSPITAL_UDP_PORT}."
-    )
+    print(f"Hospital Server has received the response from Appointment Server using UDP over port {HOSPITAL_UDP_PORT}.")
 
     print("The Hospital Server has sent the response to the client.")
 
@@ -186,9 +172,7 @@ def handle_schedule_request(client_message: str, udp_socket: socket.socket):
     illness = parts[4]
     hash_suffix = get_hash_suffix(patient_hash)
 
-    print(
-        f"Hospital Server has received a schedule request from a user with hash suffix: {hash_suffix} to book an appointment using TCP over port {HOSPITAL_TCP_PORT}."
-    )
+    print(f"Hospital Server has received a schedule request from a user with hash suffix: {hash_suffix} to book an appointment using TCP over port {HOSPITAL_TCP_PORT}.")
 
     # The Appointment Server validates the time slot and updates appointments.txt.
     request = create_message("SCHEDULE", patient_hash, doctor_name, time_slot, illness)
@@ -198,9 +182,7 @@ def handle_schedule_request(client_message: str, udp_socket: socket.socket):
 
     response, _ = receive_udp(udp_socket)
 
-    print(
-        f"Hospital Server has received the response from Appointment Server using UDP over {HOSPITAL_UDP_PORT}."
-    )
+    print(f"Hospital Server has received the response from Appointment Server using UDP over {HOSPITAL_UDP_PORT}.")
 
     print("The hospital server has sent the response to the client.")
 
@@ -216,9 +198,7 @@ def handle_view_appointment_request(client_message: str, udp_socket: socket.sock
     user_hash = parts[1]
     hash_suffix = get_hash_suffix(user_hash)
 
-    print(
-        f"Hospital server has received a view appointment request from a user with hash suffix {hash_suffix} to view their appointment details using TCP over port {HOSPITAL_TCP_PORT}."
-    )
+    print(f"Hospital server has received a view appointment request from a user with hash suffix {hash_suffix} to view their appointment details using TCP over port {HOSPITAL_TCP_PORT}.")
 
     request = create_message("VIEW_APPOINTMENT", user_hash)
     send_udp(udp_socket, request, LOCALHOST, APPOINTMENT_PORT)
@@ -227,9 +207,7 @@ def handle_view_appointment_request(client_message: str, udp_socket: socket.sock
 
     response, _ = receive_udp(udp_socket)
 
-    print(
-        f"Hospital Server has received the response from the appointment server using UDP over port {HOSPITAL_UDP_PORT}."
-    )
+    print(f"Hospital Server has received the response from the appointment server using UDP over port {HOSPITAL_UDP_PORT}.")
 
     print("The hospital server has sent the response to the client.")
     return response
@@ -244,9 +222,7 @@ def handle_cancel_request(client_message: str, udp_socket: socket.socket):
     user_hash = parts[1]
     hash_suffix = get_hash_suffix(user_hash)
 
-    print(
-        f"Hospital Server has received a cancel request from user with hash suffix: {hash_suffix} to cancel their appointment using TCP over port {HOSPITAL_TCP_PORT}."
-    )
+    print(f"Hospital Server has received a cancel request from user with hash suffix: {hash_suffix} to cancel their appointment using TCP over port {HOSPITAL_TCP_PORT}.")
 
     request = create_message("CANCEL", user_hash)
     send_udp(udp_socket, request, LOCALHOST, APPOINTMENT_PORT)
@@ -255,9 +231,7 @@ def handle_cancel_request(client_message: str, udp_socket: socket.socket):
 
     response, _ = receive_udp(udp_socket)
 
-    print(
-        f"Hospital Server has received the response from Appointment Server using UDP over port {HOSPITAL_UDP_PORT}."
-    )
+    print(f"Hospital Server has received the response from Appointment Server using UDP over port {HOSPITAL_UDP_PORT}.")
 
     print("The hospital server has sent the response to the client.")
     return response
@@ -271,9 +245,7 @@ def handle_view_doctor_appointments_request(client_message: str, udp_socket: soc
 
     doctor_name = parts[1]
 
-    print(
-        f"Hospital Server has received a view appointments request from {doctor_name} to view their schedule details using TCP over port {HOSPITAL_TCP_PORT}."
-    )
+    print(f"Hospital Server has received a view appointments request from {doctor_name} to view their schedule details using TCP over port {HOSPITAL_TCP_PORT}.")
 
     request = create_message("VIEW_DOCTOR_APPOINTMENTS", doctor_name)
     send_udp(udp_socket, request, LOCALHOST, APPOINTMENT_PORT)
@@ -282,9 +254,7 @@ def handle_view_doctor_appointments_request(client_message: str, udp_socket: soc
 
     response, _ = receive_udp(udp_socket)
 
-    print(
-        f"Hospital server has received the response from the Appointment server using UDP over port {HOSPITAL_UDP_PORT}."
-    )
+    print(f"Hospital server has received the response from the Appointment server using UDP over port {HOSPITAL_UDP_PORT}.")
 
     print("The hospital server has sent the response to the client.")
     return response
@@ -328,23 +298,17 @@ def handle_prescribe_request(client_message: str, udp_socket: socket.socket):
     patient_hash = sha256_hash(patient_username)
     hash_suffix = get_hash_suffix(patient_hash)
 
-    print(
-        f"Hospital Server has received a prescription request from {doctor_name} for a user with hash suffix {hash_suffix} using TCP over port {HOSPITAL_TCP_PORT}."
-    )
+    print(f"Hospital Server has received a prescription request from {doctor_name} for a user with hash suffix {hash_suffix} using TCP over port {HOSPITAL_TCP_PORT}.")
 
     # First confirm this doctor has an appointment/illness record for the patient.
     fetch_request = create_message("PRESCRIBE_FETCH", doctor_name, patient_hash)
     send_udp(udp_socket, fetch_request, LOCALHOST, APPOINTMENT_PORT)
 
-    print(
-        f"Hospital Server has sent a request to fetch patients with hash suffix {hash_suffix} illness information to the Appointment Server."
-    )
+    print(f"Hospital Server has sent a request to fetch patients with hash suffix {hash_suffix} illness information to the Appointment Server.")
 
     fetch_response, _ = receive_udp(udp_socket)
 
-    print(
-        f"Hospital Server has received the illness response from the Appointment server using UDP over port {HOSPITAL_UDP_PORT}."
-    )
+    print(f"Hospital Server has received the illness response from the Appointment server using UDP over port {HOSPITAL_UDP_PORT}.")
 
     fetch_parts = parse_message(fetch_response)
     if len(fetch_parts) < 2 or fetch_parts[1] != "FOUND":
@@ -368,15 +332,11 @@ def handle_prescribe_request(client_message: str, udp_socket: socket.socket):
     )
     send_udp(udp_socket, save_request, LOCALHOST, PRESCRIPTION_PORT)
 
-    print(
-        f"Hospital server has sent the prescription request to the prescription server to prescribe {treatment}."
-    )
+    print(f"Hospital server has sent the prescription request to the prescription server to prescribe {treatment}.")
 
     save_response, _ = receive_udp(udp_socket)
 
-    print(
-        f"Hospital server has received the response from the prescription server using UDP over port {HOSPITAL_UDP_PORT}"
-    )
+    print(f"Hospital server has received the response from the prescription server using UDP over port {HOSPITAL_UDP_PORT}")
 
     print("The hospital server has sent the response to the client.")
 
@@ -393,32 +353,28 @@ def handle_view_prescription_request(client_message: str, udp_socket: socket.soc
         patient_hash = parts[1]
         hash_suffix = get_hash_suffix(patient_hash)
 
-        print(
-            f"Hospital Server has received a prescription request from a patient with hash suffix {hash_suffix} to view their prescription details using TCP over port {HOSPITAL_TCP_PORT}."
-        )
+        print(f"Hospital Server has received a prescription request from a patient with hash suffix {hash_suffix} to view their prescription details using TCP over port {HOSPITAL_TCP_PORT}.")
 
         request = create_message("VIEW_PRESCRIPTION", patient_hash)
+        # Hospital sends a simple patient-hash request to the prescription backend.
         send_udp(udp_socket, request, LOCALHOST, PRESCRIPTION_PORT)
 
         print("Hospital Server has sent the prescription request to the Prescription Server.")
 
         response, _ = receive_udp(udp_socket)
 
-        print(
-            f"Hospital server has received the response from the prescription server using UDP over port {HOSPITAL_UDP_PORT}."
-        )
+        print(f"Hospital server has received the response from the prescription server using UDP over port {HOSPITAL_UDP_PORT}.")
         print("Hospital server has sent the response to the client.")
         return response
 
     if parts[0] == "VIEW_PRESCRIPTION_DOCTOR" and len(parts) == 3:
         doctor_name = parts[1]
         patient_username = parts[2]
+        # Doctors type a patient username, so Hospital converts it to the stored hash.
         patient_hash = sha256_hash(patient_username)
         hash_suffix = get_hash_suffix(patient_hash)
 
-        print(
-            f"Hospital Server has received a prescription request from {doctor_name} to view a patient with hash suffix {hash_suffix} prescription details using TCP over port {HOSPITAL_TCP_PORT}."
-        )
+        print(f"Hospital Server has received a prescription request from {doctor_name} to view a patient with hash suffix {hash_suffix} prescription details using TCP over port {HOSPITAL_TCP_PORT}.")
 
         request = create_message("VIEW_PRESCRIPTION", patient_hash)
         send_udp(udp_socket, request, LOCALHOST, PRESCRIPTION_PORT)
@@ -427,9 +383,7 @@ def handle_view_prescription_request(client_message: str, udp_socket: socket.soc
 
         response, _ = receive_udp(udp_socket)
 
-        print(
-            f"Hospital server has received the response from the prescription server using UDP over port {HOSPITAL_UDP_PORT}."
-        )
+        print(f"Hospital server has received the response from the prescription server using UDP over port {HOSPITAL_UDP_PORT}.")
         print("Hospital server has sent the response to the client.")
         return response
 
@@ -438,6 +392,7 @@ def handle_view_prescription_request(client_message: str, udp_socket: socket.soc
 def main():
     # Hospital Server bridges client TCP requests to backend UDP services.
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as udp_socket:
+        # One UDP socket is reused for backend requests and replies.
         udp_socket.bind((LOCALHOST, HOSPITAL_UDP_PORT))
 
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as tcp_socket:
@@ -472,9 +427,7 @@ def main():
                         if command == "AUTH":
                             response = handle_auth_request(message, udp_socket)
                             send_tcp(conn, response)
-                            print(
-                                f"Hospital Server has sent the response from Authentication Server to the client using TCP over port {HOSPITAL_TCP_PORT}."
-                            )
+                            print(f"Hospital Server has sent the response from Authentication Server to the client using TCP over port {HOSPITAL_TCP_PORT}.")
 
                         elif command == "LOOKUP":
                             response = handle_lookup_request(message)

@@ -3,9 +3,9 @@
 
 ## What This Project Does
 
-This is my socket programming project for a small hospital system.
+This is the socket programming project for a small hospital system.
 
-I split the system into a client, one main Hospital Server, and three backend servers:
+The system is split into a client, one main Hospital Server, and three backend servers:
 
 - `client.py`
 - `hospital_server.py`
@@ -17,9 +17,9 @@ The client only talks to the Hospital Server. Then the Hospital Server talks to 
 
 ## Main Idea
 
-I used TCP between the client and the Hospital Server because the client sends a command and waits for a direct response.
+TCP is used between the client and the Hospital Server because the client sends a command and waits for a direct response.
 
-I used UDP between the Hospital Server and the backend servers because those messages are smaller internal requests.
+UDP is used between the Hospital Server and the backend servers because those messages are smaller internal requests.
 
 ```text
 Client <--TCP--> Hospital Server <--UDP--> Backend Servers
@@ -35,7 +35,7 @@ Prescription Server
 
 ## Files
 
-| File | What I Use It For |
+| File | What It Is Used For |
 | --- | --- |
 | `client.py` | Runs the user side. It logs in and lets the user type commands. |
 | `hospital_server.py` | Main middle server. It receives client requests and sends them to the right backend server. |
@@ -51,7 +51,7 @@ Prescription Server
 
 ## Message Format
 
-I used `::` as the separator for messages.
+Messages use `::` as the separator.
 
 Some examples:
 
@@ -121,7 +121,7 @@ Example doctor:
 python3 client.py Dr.House 'rT8#vM42'
 ```
 
-I put quotes around the doctor password because it has `#`, and the shell can treat that as a comment.
+Quotes are used around the doctor password because it has `#`, and the shell can treat that as a comment.
 
 ## Commands
 
@@ -150,14 +150,6 @@ cancel
 quit
 ```
 
-For appointment times, I allow formats like:
-
-```text
-9:00
-09:00
-9:00am
-```
-
 ### Doctor
 
 ```text
@@ -179,22 +171,22 @@ quit
 ## Notes
 
 - All `.txt` files should stay in the same folder as the Python files.
-- I hash usernames and passwords with SHA-256.
+- Usernames and passwords are hashed with SHA-256.
 - The client sends hashes, not plain text credentials.
 - The Hospital Server is the only server the client talks to directly.
 - The backend servers only talk to the Hospital Server.
-- When a doctor prescribes something, I clear that appointment slot.
-- If the prescription frequency is `None`, I treat it as no active prescription.
+- When a doctor prescribes something, that appointment slot is cleared.
+- If the prescription frequency is `None`, it is treated as no active prescription.
 
 ## Testing Environment
 
-I tested this with Python 3 on Ubuntu/Linux.
+This was tested with Python 3 on Ubuntu/Linux.
 
 No extra packages are needed.
 
 ## TA Example Code
 
-I followed the socket style from the TA examples:
+The socket code follows the style from the TA examples:
 
 - `stream_server.py` for TCP
 - `datagram_server.py` for UDP

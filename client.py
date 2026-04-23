@@ -11,6 +11,7 @@ def authenticate_user(username: str, password: str):
     username_hash = sha256_hash(username)
     password_hash = sha256_hash(password)
 
+    # Build the same AUTH format that Hospital Server expects.
     message = create_message("AUTH", username_hash, password_hash)
 
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
@@ -19,8 +20,10 @@ def authenticate_user(username: str, password: str):
         print("The client is up and running.")
         print(f"{username} sent an authentication request to the hospital server.")
 
+        # The client sends the hashed credentials to the Hospital Server
         send_tcp(client_socket, message)
 
+        # Receives the authentication result and parse to determine the user's role if successful.
         response = receive_tcp(client_socket)
         parts = parse_message(response)
 
@@ -28,17 +31,17 @@ def authenticate_user(username: str, password: str):
             print("The credentials are incorrect. Please try again.")
             return None
 
+        # Failed case
         if parts[0] == "AUTH_FAIL":
             print("The credentials are incorrect. Please try again.")
             return None
 
+        # Successful case with role information
         if parts[0] == "AUTH_OK" and len(parts) == 2:
             role = parts[1]
 
             if role == "patient":
-                print(
-                    f"{username} received the authentication result. Authentication successful. You have been granted patient access."
-                )
+                print(f"{username} received the authentication result. Authentication successful. You have been granted patient access.")
                 return {
                     "username": username,
                     "username_hash": username_hash,
@@ -46,9 +49,7 @@ def authenticate_user(username: str, password: str):
                 }
 
             if role == "doctor":
-                print(
-                    f"{username} received the authentication result. Authentication successful. You have been granted doctor access."
-                )
+                print(f"{username} received the authentication result. Authentication successful. You have been granted doctor access.")
                 return {
                     "username": username,
                     "username_hash": username_hash,
@@ -93,14 +94,13 @@ def handle_lookup(user_info):
 
     message = create_message("LOOKUP", username_hash)
     response = send_request(message)
+    # Responses also use the delimiter, so I parse before checking status.
     parts = parse_message(response)
 
     if parts[0] != "LOOKUP_RESP":
         return
 
-    print(
-        f"The client received the response from the hospital server using TCP over port {HOSPITAL_TCP_PORT}."
-    )
+    print(f"The client received the response from the hospital server using TCP over port {HOSPITAL_TCP_PORT}.")
     print("The following doctors are available:")
     for doctor in parts[1:]:
         print(doctor)
@@ -114,6 +114,7 @@ def handle_lookup_doctor(user_info, doctor_name: str):
 
     message = create_message("LOOKUP_DOCTOR", username_hash, doctor_name)
     response = send_request(message)
+    # The response tells if this doctor has all, none, or some slots free.
     parts = parse_message(response)
 
     if len(parts) < 3 or parts[0] != "LOOKUP_DOCTOR_RESP":
@@ -122,19 +123,13 @@ def handle_lookup_doctor(user_info, doctor_name: str):
     status = parts[1]
 
     if status == "ALL_AVAILABLE":
-        print(
-            f"The client received the response from the hospital server using TCP over port {HOSPITAL_TCP_PORT}."
-        )
+        print(f"The client received the response from the hospital server using TCP over port {HOSPITAL_TCP_PORT}.")
         print(f"All time blocks are available for {doctor_name}.")
     elif status == "NONE_AVAILABLE":
-        print(
-            f"The client received the response from the Hospital Server using TCP over port {HOSPITAL_TCP_PORT}."
-        )
+        print(f"The client received the response from the Hospital Server using TCP over port {HOSPITAL_TCP_PORT}.")
         print(f"{doctor_name} has no time slots available.")
     elif status == "SOME_AVAILABLE":
-        print(
-            f"The client received the response from the Hospital Server using TCP over port {HOSPITAL_TCP_PORT}."
-        )
+        print(f"The client received the response from the Hospital Server using TCP over port {HOSPITAL_TCP_PORT}.")
         print(f"{doctor_name} is available at times:")
         for slot in parts[3:]:
             print(slot)
@@ -157,42 +152,26 @@ def handle_schedule(user_info, doctor_name: str, time_slot: str, illness: str):
     status = parts[1]
 
     if status == "SUCCESS":
-        print(
-            f"The client received the response from the Hospital Server using TCP over port {HOSPITAL_TCP_PORT}"
-        )
-        print(
-            f"An appointment has been successfully scheduled for patient {username} with {doctor_name} at {time_slot}."
-        )
+        print(f"The client received the response from the Hospital Server using TCP over port {HOSPITAL_TCP_PORT}")
+        print(f"An appointment has been successfully scheduled for patient {username} with {doctor_name} at {time_slot}.")
 
     elif status == "TIME_NOT_AVAILABLE":
-        print(
-            f"The client received the response from the hospital server using TCP over port {HOSPITAL_TCP_PORT}"
-        )
+        print(f"The client received the response from the hospital server using TCP over port {HOSPITAL_TCP_PORT}")
         if len(parts) > 4:
-            print(
-                f"Unable to schedule an appointment with {doctor_name} at {time_slot}. Other available time blocks are"
-            )
+            print(f"Unable to schedule an appointment with {doctor_name} at {time_slot}. Other available time blocks are")
             for slot in parts[4:]:
                 print(slot)
         else:
-            print(
-                f"Unable to schedule an appointment with {doctor_name} at this time, as all time blocks have been taken up."
-            )
+            print(f"Unable to schedule an appointment with {doctor_name} at this time, as all time blocks have been taken up.")
 
     elif status == "INVALID_TIME":
-        print(
-            f"The client received the response from the hospital server using TCP over port {HOSPITAL_TCP_PORT}"
-        )
+        print(f"The client received the response from the hospital server using TCP over port {HOSPITAL_TCP_PORT}")
         if len(parts) > 4:
-            print(
-                f"Unable to schedule an appointment with {doctor_name} at {time_slot}. Other available time blocks are"
-            )
+            print(f"Unable to schedule an appointment with {doctor_name} at {time_slot}. Other available time blocks are")
             for slot in parts[4:]:
                 print(slot)
         else:
-            print(
-                f"Unable to schedule an appointment with {doctor_name} at this time, as all time blocks have been taken up."
-            )
+            print(f"Unable to schedule an appointment with {doctor_name} at this time, as all time blocks have been taken up.")
 
 def command_loop(user_info):
     # After login, role decides which commands the user is allowed to run.
@@ -218,11 +197,13 @@ def command_loop(user_info):
         elif role == "patient" and command == "lookup":
             handle_lookup(user_info)
 
+        # Doctor lookup with a doctor name asks for that doctor's available slots.
         elif role == "patient" and command.startswith("lookup "):
             parts = command.split()
             if len(parts) == 2:
                 handle_lookup_doctor(user_info, parts[1])
 
+        # Schedule command includes doctor name, time slot, and illness description.
         elif role == "patient" and command.startswith("schedule "):
             parts = command.split()
             if len(parts) >= 4:
@@ -232,6 +213,7 @@ def command_loop(user_info):
                 illness = " ".join(parts[3:])
                 handle_schedule(user_info, doctor_name, time_slot, illness)
 
+        # View appointment and cancel commands only require the patient's username hash, which is stored in the client.
         elif role == "patient" and command == "view_appointment":
             handle_view_appointment(user_info)
 
@@ -277,14 +259,10 @@ def handle_view_appointment(user_info):
     if status == "FOUND":
         doctor_name = parts[2]
         time_slot = parts[3]
-        print(
-            f"The client received the response from the hospital server using TCP over port {HOSPITAL_TCP_PORT}"
-        )
+        print(f"The client received the response from the hospital server using TCP over port {HOSPITAL_TCP_PORT}")
         print(f"You have an appointment scheduled with {doctor_name} at {time_slot}.")
     elif status == "NOT_FOUND":
-        print(
-            f"The client received the response from the hospital server using TCP over client port {HOSPITAL_TCP_PORT}"
-        )
+        print(f"The client received the response from the hospital server using TCP over client port {HOSPITAL_TCP_PORT}")
         print("You do not have an appointment today.")
 
 def handle_cancel(user_info):
@@ -306,14 +284,10 @@ def handle_cancel(user_info):
     if status == "SUCCESS":
         doctor_name = parts[2]
         time_slot = parts[3]
-        print(
-            f"The client received the response from the Hospital Server using TCP over port {HOSPITAL_TCP_PORT}"
-        )
+        print(f"The client received the response from the Hospital Server using TCP over port {HOSPITAL_TCP_PORT}")
         print(f"You have successfully cancelled your appointment with {doctor_name} at {time_slot}.")
     elif status == "NOT_FOUND":
-        print(
-            f"The client received the response from the Hospital Server using TCP over port {HOSPITAL_TCP_PORT}"
-        )
+        print(f"The client received the response from the Hospital Server using TCP over port {HOSPITAL_TCP_PORT}")
         print("You have no appointments available to cancel.")
 
 def handle_view_doctor_appointments(user_info):
@@ -332,14 +306,10 @@ def handle_view_doctor_appointments(user_info):
     status = parts[1]
 
     if status == "NONE":
-        print(
-            f"The client received the response from the hospital server using TCP over port {HOSPITAL_TCP_PORT}"
-        )
+        print(f"The client received the response from the hospital server using TCP over port {HOSPITAL_TCP_PORT}")
         print("You do not have any appointments scheduled.")
     elif status == "FOUND":
-        print(
-            f"The client received the response from the hospital server using TCP over port {HOSPITAL_TCP_PORT}"
-        )
+        print(f"The client received the response from the hospital server using TCP over port {HOSPITAL_TCP_PORT}")
         print(f"{doctor_name} is scheduled at times:")
         for slot in parts[3:]:
             print(slot)
@@ -348,9 +318,7 @@ def handle_prescribe(user_info, patient_username: str, frequency: str):
     # Doctors prescribe by patient username; the Hospital Server converts it to a hash.
     doctor_name = user_info["username"]
 
-    print(
-        f"{doctor_name} sent a request to the Hospital Server to prescribe {patient_username} following their diagnosis."
-    )
+    print(f"{doctor_name} sent a request to the Hospital Server to prescribe {patient_username} following their diagnosis.")
 
     message = create_message("PRESCRIBE", doctor_name, patient_username, frequency)
     response = send_request(message)
@@ -361,12 +329,8 @@ def handle_prescribe(user_info, patient_username: str, frequency: str):
 
     if parts[1] == "SUCCESS":
         treatment = parts[3]
-        print(
-            f"The client received the response from the hospital server using TCP over port {HOSPITAL_TCP_PORT}"
-        )
-        print(
-            f"You have successfully prescribed {patient_username} with {treatment}, to be taken {frequency}."
-        )
+        print(f"The client received the response from the hospital server using TCP over port {HOSPITAL_TCP_PORT}")
+        print(f"You have successfully prescribed {patient_username} with {treatment}, to be taken {frequency}.")
 
 def handle_view_prescription_patient(user_info):
     # Patients request prescriptions using their own stored username hash.
@@ -383,29 +347,21 @@ def handle_view_prescription_patient(user_info):
         return
 
     if parts[1] == "NOT_FOUND":
-        print(
-            f"The client received the response from the hospital server using TCP over port {HOSPITAL_TCP_PORT}"
-        )
+        print(f"The client received the response from the hospital server using TCP over port {HOSPITAL_TCP_PORT}")
         print("You do not have a prescription to look up.")
     elif parts[1] == "FOUND":
         doctor_name = parts[2]
         treatment = parts[3]
         frequency = parts[4]
-        print(
-            f"The client received the response from the hospital server using TCP over port {HOSPITAL_TCP_PORT}"
-        )
-        print(
-            f"You have been prescribed {treatment}, to be taken {frequency}, by {doctor_name}."
-        )
+        print(f"The client received the response from the hospital server using TCP over port {HOSPITAL_TCP_PORT}")
+        print(f"You have been prescribed {treatment}, to be taken {frequency}, by {doctor_name}.")
 
 def handle_view_prescription_doctor(user_info, patient_username: str):
     # Doctors request prescriptions by patient name; the Hospital Server converts it to a hash and
     # checks if the doctor is the one who prescribed it.
     doctor_name = user_info["username"]
 
-    print(
-        f"{doctor_name} sent a request to view {patient_username} prescription to the Hospital Server."
-    )
+    print(f"{doctor_name} sent a request to view {patient_username} prescription to the Hospital Server.")
 
     message = create_message("VIEW_PRESCRIPTION_DOCTOR", doctor_name, patient_username)
     response = send_request(message)
@@ -415,20 +371,15 @@ def handle_view_prescription_doctor(user_info, patient_username: str):
         return
 
     if parts[1] == "NOT_FOUND":
-        print(
-            f"The client received the response from the hospital server using TCP over port {HOSPITAL_TCP_PORT}"
-        )
+        print(f"The client received the response from the hospital server using TCP over port {HOSPITAL_TCP_PORT}")
         print(f"{patient_username} does not have a prescription.")
     elif parts[1] == "FOUND":
         doctor_name_from_entry = parts[2]
         treatment = parts[3]
         frequency = parts[4]
-        print(
-            f"The client received the response from the hospital server using TCP over port {HOSPITAL_TCP_PORT}"
-        )
-        print(
-            f"{patient_username} has been prescribed {treatment}, to be taken {frequency}, by {doctor_name_from_entry}."
-        )
+        print(f"The client received the response from the hospital server using TCP over port {HOSPITAL_TCP_PORT}")
+        print(f"{patient_username} has been prescribed {treatment}, to be taken {frequency}, by {doctor_name_from_entry}.")
+
 
 def main():
     # Reads username/password from the command line and starts the client session.
