@@ -8,6 +8,7 @@ from utils import *
 
 
 APPOINTMENTS_FILE = "appointments.txt"
+HOSPITAL_FILE = "hospital.txt"
 
 
 def load_appointments(filepath: str) -> dict:
@@ -60,6 +61,31 @@ def get_available_slots(appointments: dict, doctor_name: str) -> list:
             available.append(parts[0])
 
     return available
+
+def get_doctor_list(filepath: str) -> list:
+    # Read doctor names from hospital.txt for the plain lookup command.
+    doctors = []
+    lines = read_file_lines(filepath)
+
+    in_doctors_section = False
+
+    for line in lines:
+        if not line:
+            continue
+
+        if line == "[Doctors]":
+            in_doctors_section = True
+            continue
+
+        if line == "[Treatments]":
+            break
+
+        if in_doctors_section:
+            parts = line.split()
+            if len(parts) == 2:
+                doctors.append(parts[0])
+
+    return doctors
 
 def schedule_appointment(
     appointments: dict,
@@ -118,6 +144,11 @@ def handle_lookup_doctor(doctor_name: str) -> str:
         doctor_name,
         *available_slots
     )
+
+def handle_lookup() -> str:
+    # Plain lookup returns the full doctor list.
+    doctors = get_doctor_list(HOSPITAL_FILE)
+    return create_message("LOOKUP_RESP", *doctors)
 
 def handle_schedule(doctor_name: str, time_slot: str, patient_hash: str, illness: str) -> str:
     # This wrapper loads the latest file state, schedules, then saves only on success.
@@ -291,9 +322,10 @@ def handle_prescribe_fetch(doctor_name: str, patient_hash: str):
     if not success:
         return create_message("PRESCRIBE_FETCH_RESP", "NOT_FOUND")
 
+    print("Sending back the requested information to the Hospital server.")
+
     write_appointments(APPOINTMENTS_FILE, appointments)
 
-    print("Sending back the requested information to the Hospital server.")
     print(f"Successfully removed {hash_suffix} appointment slot, {time_slot} is now free to be scheduled for tomorrow.")
 
     return create_message("PRESCRIBE_FETCH_RESP", "FOUND", illness)
@@ -318,7 +350,13 @@ def main():
                 command = parts[0]
 
                 # Dispatch based on the command sent by Hospital Server.
-                if command == "LOOKUP_DOCTOR" and len(parts) == 2:
+                if command == "LOOKUP" and len(parts) == 2:
+                    print("The Appointment Server has received a doctor availability request.")
+                    response = handle_lookup()
+                    send_udp(server_socket, response, addr[0], addr[1])
+                    print("The Appointment Server has sent the lookup result to the Hospital Server.")
+
+                elif command == "LOOKUP_DOCTOR" and len(parts) == 2:
                     doctor_name = parts[1]
 
                     print("The Appointment Server has received a doctor availability request.")
