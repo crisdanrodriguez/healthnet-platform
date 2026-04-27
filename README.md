@@ -79,28 +79,28 @@ Use separate terminals for each server.
 
 Start the servers in this order:
 
-### 1. Authentication Server
+### 1. Hospital Server
+
+```bash
+python3 hospital_server.py
+```
+
+### 2. Authentication Server
 
 ```bash
 python3 authentication_server.py
 ```
 
-### 2. Appointment Server
+### 3. Appointment Server
 
 ```bash
 python3 appointment_server.py
 ```
 
-### 3. Prescription Server
+### 4. Prescription Server
 
 ```bash
 python3 prescription_server.py
-```
-
-### 4. Hospital Server
-
-```bash
-python3 hospital_server.py
 ```
 
 ### 5. Client
