@@ -128,5 +128,10 @@ def write_file_lines(filepath: str, lines: Iterable[str]) -> None:
 
 def append_file_line(filepath: str, line: str) -> None:
     # Append is enough for prescriptions because old records do not need to be changed.
-    with open(filepath, "a", encoding = ENCODING) as file_obj:
+    with open(filepath, "a+", encoding = ENCODING) as file_obj:
+        # If the file already has content but no ending newline, add one first.
+        if file_obj.tell() > 0:
+            file_obj.seek(file_obj.tell() - 1)
+            if file_obj.read(1) != "\n":
+                file_obj.write("\n")
         file_obj.write(f"{line}\n")

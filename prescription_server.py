@@ -62,7 +62,7 @@ def handle_view_prescription(patient_hash: str):
     # The patient hash is the shared key between appointments and prescriptions.
     doctor_name, treatment, frequency = find_prescription(PRESCRIPTIONS_FILE, patient_hash)
 
-    if doctor_name is None or frequency == "None":
+    if doctor_name is None:
         print("There are no current prescriptions for this user.")
         return create_message("VIEW_PRESCRIPTION_RESP", "NOT_FOUND")
 

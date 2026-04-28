@@ -109,8 +109,8 @@ def handle_auth_request(client_message: str, udp_socket: socket.socket):
 
     return "AUTH_FAIL"
 
-def handle_lookup_request(client_message: str):
-    # This lookup is handled locally because hospital.txt already has the doctor names.
+def handle_lookup_request(client_message: str, udp_socket: socket.socket):
+    # Plain lookup also goes through Appointment Server so the lookup flow stays together there.
     parts = parse_message(client_message)
 
     if len(parts) != 2 or parts[0] != "LOOKUP":
@@ -121,16 +121,18 @@ def handle_lookup_request(client_message: str):
 
     print(f"Hospital Server received a lookup request from a user with a hash suffix {hash_suffix} over port {HOSPITAL_TCP_PORT}.")
 
-    # General lookup only returns the doctor list from hospital.txt.
-    # A second command, LOOKUP_DOCTOR, asks Appointment Server for availability.
-    doctors = get_doctor_list(HOSPITAL_FILE)
-
     print("Hospital Server sent the doctor lookup request to the Appointment server.")
+
+    request = create_message("LOOKUP", user_hash)
+    send_udp(udp_socket, request, LOCALHOST, APPOINTMENT_PORT)
+
+    response, _ = receive_udp(udp_socket)
+
     print(f"Hospital Server has received the response from Appointment Server using UDP over port {HOSPITAL_UDP_PORT}.")
 
     print("Hospital Server has sent the doctor lookup to the client.")
 
-    return create_message("LOOKUP_RESP", *doctors)
+    return response
 
 def handle_lookup_doctor_request(client_message: str, udp_socket: socket.socket):
     # Doctor-specific lookup flow goes through Appointment Server because it owns availability.
@@ -403,7 +405,6 @@ def main():
             tcp_socket.listen(5)
 
             print(f"Hospital Server is up and running using UDP on port {HOSPITAL_UDP_PORT}.")
-            print(f"Hospital Server is listening for TCP clients on port {HOSPITAL_TCP_PORT}.")
 
             try:
                 while True:
@@ -430,7 +431,7 @@ def main():
                             print(f"Hospital Server has sent the response from Authentication Server to the client using TCP over port {HOSPITAL_TCP_PORT}.")
 
                         elif command == "LOOKUP":
-                            response = handle_lookup_request(message)
+                            response = handle_lookup_request(message, udp_socket)
                             send_tcp(conn, response)
 
                         elif command == "LOOKUP_DOCTOR":
