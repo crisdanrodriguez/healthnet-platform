@@ -25,7 +25,7 @@ DEFAULT_BUFFER_SIZE = 4096
 
 # Valid appointment time slots
 VALID_TIME_SLOTS = (
-    "9:00",
+    "09:00",
     "10:00",
     "11:00",
     "12:00",
@@ -105,7 +105,7 @@ def normalize_time_slot(time_str: str) -> str:
     elif period == "am" and hour == 12:
         hour = 0
 
-    return f"{hour}:{minute:02d}"
+    return f"{hour:02d}:{minute:02d}"
 
 def is_valid_time_slot(time_str: str) -> bool:
     # Checks if the requested time is one of the allowed appointment times.

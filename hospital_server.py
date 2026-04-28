@@ -114,7 +114,7 @@ def handle_lookup_request(client_message: str, udp_socket: socket.socket):
     parts = parse_message(client_message)
 
     if len(parts) != 2 or parts[0] != "LOOKUP":
-        return "LOOKUP_RESP|ERROR"
+        return create_message("LOOKUP_RESP", "ERROR")
 
     user_hash = parts[1]
     hash_suffix = get_hash_suffix(user_hash)
@@ -139,7 +139,7 @@ def handle_lookup_doctor_request(client_message: str, udp_socket: socket.socket)
     parts = parse_message(client_message)
 
     if len(parts) != 3 or parts[0] != "LOOKUP_DOCTOR":
-        return "LOOKUP_DOCTOR_RESP|ERROR"
+        return create_message("LOOKUP_DOCTOR_RESP", "ERROR")
 
     user_hash = parts[1]
     doctor_name = parts[2]
@@ -166,7 +166,7 @@ def handle_schedule_request(client_message: str, udp_socket: socket.socket):
     parts = parse_message(client_message)
 
     if len(parts) != 5 or parts[0] != "SCHEDULE":
-        return "SCHEDULE_RESP|ERROR"
+        return create_message("SCHEDULE_RESP", "ERROR")
 
     patient_hash = parts[1]
     doctor_name = parts[2]
@@ -195,7 +195,7 @@ def handle_view_appointment_request(client_message: str, udp_socket: socket.sock
     parts = parse_message(client_message)
 
     if len(parts) != 2 or parts[0] != "VIEW_APPOINTMENT":
-        return "VIEW_APPOINTMENT_RESP|ERROR"
+        return create_message("VIEW_APPOINTMENT_RESP", "ERROR")
 
     user_hash = parts[1]
     hash_suffix = get_hash_suffix(user_hash)
@@ -219,7 +219,7 @@ def handle_cancel_request(client_message: str, udp_socket: socket.socket):
     parts = parse_message(client_message)
 
     if len(parts) != 2 or parts[0] != "CANCEL":
-        return "CANCEL_RESP|ERROR"
+        return create_message("CANCEL_RESP", "ERROR")
 
     user_hash = parts[1]
     hash_suffix = get_hash_suffix(user_hash)
@@ -243,7 +243,7 @@ def handle_view_doctor_appointments_request(client_message: str, udp_socket: soc
     parts = parse_message(client_message)
 
     if len(parts) != 2 or parts[0] != "VIEW_DOCTOR_APPOINTMENTS":
-        return "VIEW_DOCTOR_APPOINTMENTS_RESP|ERROR"
+        return create_message("VIEW_DOCTOR_APPOINTMENTS_RESP", "ERROR")
 
     doctor_name = parts[1]
 
@@ -291,7 +291,7 @@ def handle_prescribe_request(client_message: str, udp_socket: socket.socket):
     parts = parse_message(client_message)
 
     if len(parts) != 4 or parts[0] != "PRESCRIBE":
-        return "PRESCRIBE_RESP|ERROR"
+        return create_message("PRESCRIBE_RESP", "ERROR")
 
     doctor_name = parts[1]
     patient_username = parts[2]
@@ -349,7 +349,7 @@ def handle_view_prescription_request(client_message: str, udp_socket: socket.soc
     parts = parse_message(client_message)
 
     if len(parts) < 2:
-        return "VIEW_PRESCRIPTION_RESP|ERROR"
+        return create_message("VIEW_PRESCRIPTION_RESP", "ERROR")
 
     if parts[0] == "VIEW_PRESCRIPTION_PATIENT" and len(parts) == 2:
         patient_hash = parts[1]
@@ -389,7 +389,7 @@ def handle_view_prescription_request(client_message: str, udp_socket: socket.soc
         print("Hospital server has sent the response to the client.")
         return response
 
-    return "VIEW_PRESCRIPTION_RESP|ERROR"
+    return create_message("VIEW_PRESCRIPTION_RESP", "ERROR")
 
 def main():
     # Hospital Server bridges client TCP requests to backend UDP services.

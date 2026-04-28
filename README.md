@@ -1,5 +1,5 @@
 **Name:** Cristian Daniel Rodriguez Vazquez  
-**USC ID:** [Your USC ID]
+**USC ID:** 7657291656
 
 ## What This Project Does
 
@@ -43,11 +43,6 @@ Prescription Server
 | `appointment_server.py` | Handles lookup, schedule, cancel, and appointment views. |
 | `prescription_server.py` | Saves and returns prescription information. |
 | `utils.py` | Shared helper functions for sockets, hashing, files, and messages. |
-| `users.txt` | Has hashed username/password pairs. |
-| `hospital.txt` | Has doctor hashes and treatment data. |
-| `appointments.txt` | Has doctor schedules. |
-| `prescriptions.txt` | Has prescription records. |
-| `original.txt` | Plain usernames/passwords used for testing. |
 
 ## Message Format
 
@@ -180,7 +175,7 @@ quit
 
 ## Testing Environment
 
-This was tested with Python 3 on Ubuntu/Linux.
+This was tested with Python 3 on Ubuntu 20.04.
 
 No extra packages are needed.
 

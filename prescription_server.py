@@ -51,7 +51,7 @@ def handle_save_prescription(doctor_name: str, patient_hash: str, treatment: str
     append_file_line(PRESCRIPTIONS_FILE, line)
 
     print(f"Successfully saved the prescription details for user with hash suffix: {hash_suffix}.")
-    return "SAVE_PRESCRIPTION_RESP|SUCCESS"
+    return "SAVE_PRESCRIPTION_RESP::SUCCESS"
 
 def handle_view_prescription(patient_hash: str):
     # Returns the prescription for a patient if one exists.
