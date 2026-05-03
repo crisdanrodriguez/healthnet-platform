@@ -1,14 +1,27 @@
 import sys
 import socket
-from utils import *
+from utils import (
+    APPOINTMENT_PORT,
+    LOCALHOST,
+    create_message,
+    data_path,
+    get_hash_suffix,
+    is_valid_time_slot,
+    normalize_time_slot,
+    parse_message,
+    read_file_lines,
+    receive_udp,
+    send_udp,
+    write_file_lines,
+)
 
 # Appointment Server owns appointment state.
 # It reads/writes appointments.txt and responds to Hospital Server over UDP.
 # Hospital Server validates the client-facing command, then this server updates the schedule.
 
 
-APPOINTMENTS_FILE = "appointments.txt"
-HOSPITAL_FILE = "hospital.txt"
+APPOINTMENTS_FILE = data_path("appointments.txt")
+HOSPITAL_FILE = data_path("hospital.txt")
 
 
 def load_appointments(filepath: str) -> dict:

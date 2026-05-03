@@ -1,12 +1,21 @@
 import sys
 import socket
-from utils import *
+from utils import (
+    AUTH_PORT,
+    LOCALHOST,
+    data_path,
+    get_hash_suffix,
+    parse_message,
+    read_file_lines,
+    receive_udp,
+    send_udp,
+)
 
 # Approach: Authentication Server is a backend UDP service.
 # It only verifies hashed credentials sent by Hospital Server.
 
 
-USERS_FILE = "users.txt"
+USERS_FILE = data_path("users.txt")
 
 
 def load_users(filepath: str) -> set:

@@ -1,0 +1,7 @@
+[project]
+name = "healthnet-platform"
+version = "0.1.0"
+description = "Python socket-programming demo for a small distributed hospital platform."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = []

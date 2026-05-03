@@ -1,13 +1,30 @@
 import socket
 import sys
-from utils import *
+from utils import (
+    APPOINTMENT_PORT,
+    AUTH_PORT,
+    HOSPITAL_TCP_PORT,
+    HOSPITAL_UDP_PORT,
+    LOCALHOST,
+    PRESCRIPTION_PORT,
+    create_message,
+    data_path,
+    get_hash_suffix,
+    parse_message,
+    read_file_lines,
+    receive_tcp,
+    receive_udp,
+    send_tcp,
+    send_udp,
+    sha256_hash,
+)
 
 # Hospital Server is the central router.
 # Clients talk to it over TCP; it talks to backend servers over UDP.
 # This keeps the client-facing protocol separate from the backend services.
 
 
-HOSPITAL_FILE = "hospital.txt"
+HOSPITAL_FILE = data_path("hospital.txt")
 
 
 def load_doctor_hashes(filepath: str):

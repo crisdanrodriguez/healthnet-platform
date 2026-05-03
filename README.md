@@ -1,128 +1,75 @@
-**Name:** Cristian Daniel Rodriguez Vazquez  
-**USC ID:** 7657291656
+# HealthNet Platform
 
-## What This Project Does
+[![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![CI](https://github.com/crisdanrodriguez/healthnet-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/crisdanrodriguez/healthnet-platform/actions/workflows/ci.yml)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](#license)
 
-This is the socket programming project for a small hospital system.
+HealthNet Platform is a Python socket-programming project that models a small hospital system with one TCP client-facing server and three UDP backend services for authentication, appointments, and prescriptions.
 
-The system is split into a client, one main Hospital Server, and three backend servers:
+## Table of Contents
 
-- `client.py`
-- `hospital_server.py`
-- `authentication_server.py`
-- `appointment_server.py`
-- `prescription_server.py`
+- [Overview](#overview)
+- [Installation](#installation)
+- [Usage](#usage)
+- [Project Structure](#project-structure)
+- [Results](#results)
+- [Documentation](#documentation)
+- [Development](#development)
+- [License](#license)
+- [AI Assistance and Last Updated](#ai-assistance-and-last-updated)
 
-The client only talks to the Hospital Server. Then the Hospital Server talks to the other servers depending on what the user wants to do.
+## Overview
 
-## Main Idea
-
-TCP is used between the client and the Hospital Server because the client sends a command and waits for a direct response.
-
-UDP is used between the Hospital Server and the backend servers because those messages are smaller internal requests.
-
-```text
-Client <--TCP--> Hospital Server <--UDP--> Backend Servers
-```
-
-Backend servers:
+The client communicates only with the Hospital Server over TCP. The Hospital Server routes requests to backend UDP services:
 
 ```text
-Authentication Server
-Appointment Server
-Prescription Server
+Client <-- TCP --> Hospital Server <-- UDP --> Backend Services
 ```
 
-## Files
+Backend services:
 
-| File | What It Is Used For |
-| --- | --- |
-| `client.py` | Runs the user side. It logs in and lets the user type commands. |
-| `hospital_server.py` | Main middle server. It receives client requests and sends them to the right backend server. |
-| `authentication_server.py` | Checks if the username/password hashes are valid. |
-| `appointment_server.py` | Handles lookup, schedule, cancel, and appointment views. |
-| `prescription_server.py` | Saves and returns prescription information. |
-| `utils.py` | Shared helper functions for sockets, hashing, files, and messages. |
+- `authentication_server.py` validates hashed credentials.
+- `appointment_server.py` manages doctor lookup, scheduling, cancellation, and appointment views.
+- `prescription_server.py` stores and retrieves prescription records.
 
-## Message Format
+The project uses only the Python standard library.
 
-Messages use `::` as the separator.
+## Installation
 
-Some examples:
+Clone the repository and use Python 3.10 or newer:
 
-```text
-AUTH::<username_hash>::<password_hash>
-LOOKUP::<user_hash>
-LOOKUP_DOCTOR::<user_hash>::<doctor_name>
-SCHEDULE::<patient_hash>::<doctor_name>::<time>::<illness>
+```bash
+git clone https://github.com/crisdanrodriguez/healthnet-platform.git
+cd healthnet-platform
+python3 --version
 ```
 
-Some responses look like:
+No third-party dependencies are required for runtime.
 
-```text
-AUTH_OK::patient
-AUTH_OK::doctor
-AUTH_FAIL
-SCHEDULE_RESP::SUCCESS::<doctor_name>::<time>
-```
+## Usage
 
-## How To Run
-
-There is no Makefile for this project, so run everything directly with `python3`.
-
-Use separate terminals for each server.
-
-Start the servers in this order:
-
-### 1. Hospital Server
+Start each service in a separate terminal from the repository root:
 
 ```bash
 python3 hospital_server.py
-```
-
-### 2. Authentication Server
-
-```bash
 python3 authentication_server.py
-```
-
-### 3. Appointment Server
-
-```bash
 python3 appointment_server.py
-```
-
-### 4. Prescription Server
-
-```bash
 python3 prescription_server.py
 ```
 
-### 5. Client
+Then start a client session:
 
 ```bash
-python3 client.py <username> <password>
+python3 client.py AvaMitchell 'qL4@zT81'
 ```
 
-Example patient:
-
-```bash
-python3 client.py AvaMitchell qL4@zT81
-```
-
-Example doctor:
+Doctor demo account:
 
 ```bash
 python3 client.py Dr.House 'rT8#vM42'
 ```
 
-Quotes are used around the doctor password because it has `#`, and the shell can treat that as a comment.
-
-## Commands
-
-After logging in, the commands depend on whether the user is a patient or a doctor.
-
-### Patient
+Patient commands:
 
 ```text
 lookup
@@ -134,18 +81,7 @@ view_prescription
 quit
 ```
 
-Example:
-
-```text
-lookup
-lookup Dr.House
-schedule Dr.House 9:00 Flu
-view_appointment
-cancel
-quit
-```
-
-### Doctor
+Doctor commands:
 
 ```text
 view_appointments
@@ -154,36 +90,60 @@ view_prescription <patient>
 quit
 ```
 
-Example:
+## Project Structure
 
 ```text
-view_appointments
-prescribe AvaMitchell Daily
-view_prescription AvaMitchell
-quit
+.
+├── .github/workflows/ci.yml
+├── data/
+│   ├── appointments.txt
+│   ├── hospital.txt
+│   ├── prescriptions.txt
+│   └── users.txt
+├── tests/
+│   └── test_core_logic.py
+├── appointment_server.py
+├── authentication_server.py
+├── client.py
+├── hospital_server.py
+├── prescription_server.py
+├── utils.py
+├── pyproject.toml
+└── README.md
 ```
 
-## Notes
+## Results
 
-- All `.txt` files should stay in the same folder as the Python files.
-- Usernames and passwords are hashed with SHA-256.
-- The client sends hashes, not plain text credentials.
-- The Hospital Server is the only server the client talks to directly.
-- The backend servers only talk to the Hospital Server.
-- When a doctor prescribes something, that appointment slot is cleared.
-- If the prescription frequency is `None`, it is treated as no active prescription.
+This repository includes a runnable local demo of a distributed hospital workflow:
 
-## Testing Environment
+- patient and doctor authentication with SHA-256 credential hashes
+- doctor availability lookup
+- appointment scheduling and cancellation
+- prescription creation and lookup
 
-This was tested with Python 3 on Ubuntu 20.04.
+No screenshots, videos, or benchmark reports are included.
 
-No extra packages are needed.
+## Documentation
 
-## TA Example Code
+The source files contain concise comments around the socket flow and data ownership. Supporting data files are stored in `data/` to keep the repository root focused on executable code and project metadata.
 
-The socket code follows the style from the TA examples:
+## Development
 
-- `stream_server.py` for TCP
-- `datagram_server.py` for UDP
+Run the basic verification suite:
 
-The rest of the project logic was written for this assignment.
+```bash
+python3 -m unittest discover -s tests
+python3 -m compileall appointment_server.py authentication_server.py client.py hospital_server.py prescription_server.py utils.py tests
+```
+
+The GitHub Actions workflow runs the same checks on Python 3.10, 3.11, and 3.12.
+
+## License
+
+This project is licensed under the terms of the [MIT License](LICENSE).
+
+## AI Assistance and Last Updated
+
+This repository was organized and documented with AI assistance from Codex.
+
+Last updated: May 2026.

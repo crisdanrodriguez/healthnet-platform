@@ -1,12 +1,23 @@
 import socket
 import sys
-from utils import *
+from utils import (
+    LOCALHOST,
+    PRESCRIPTION_PORT,
+    append_file_line,
+    create_message,
+    data_path,
+    get_hash_suffix,
+    parse_message,
+    read_file_lines,
+    receive_udp,
+    send_udp,
+)
 
 # Approach: Prescription Server is responsible only for prescription storage.
 # Hospital Server decides when to save or view a prescription, then sends UDP requests here.
 
 
-PRESCRIPTIONS_FILE = "prescriptions.txt"
+PRESCRIPTIONS_FILE = data_path("prescriptions.txt")
 
 
 def load_prescriptions(filepath: str):

@@ -1,6 +1,14 @@
 import sys
 import socket
-from utils import *
+from utils import (
+    HOSPITAL_TCP_PORT,
+    LOCALHOST,
+    create_message,
+    parse_message,
+    receive_tcp,
+    send_tcp,
+    sha256_hash,
+)
 
 # Approach: the client never contacts backend servers directly.
 # Every user command goes to the Hospital Server, which keeps the client simple.
