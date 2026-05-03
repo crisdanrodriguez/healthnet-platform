@@ -2,7 +2,7 @@
 
 [![Python](https://img.shields.io/badge/Python-3.10%2B-0A66C2?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
 [![Sockets](https://img.shields.io/badge/Sockets-Stdlib-0A66C2?style=flat-square&logo=python&logoColor=white)](https://docs.python.org/3/library/socket.html)
-[![Tests](https://img.shields.io/github/actions/workflow/status/crisdanrodriguez/healthnet-platform/ci.yml?branch=main&label=Tests&style=flat-square&logo=githubactions&logoColor=white&color=0A66C2)](https://github.com/crisdanrodriguez/healthnet-platform/actions/workflows/ci.yml)
+[![Tests](https://img.shields.io/github/actions/workflow/status/crisdanrodriguez/healthnet-platform/ci.yml?branch=main&label=Tests&style=flat-square&logo=githubactions&logoColor=white)](https://github.com/crisdanrodriguez/healthnet-platform/actions/workflows/ci.yml)
 
 HealthNet Platform is a Python socket-programming project that models a small hospital system with one TCP client-facing server and three UDP backend services for authentication, appointments, and prescriptions.
 
