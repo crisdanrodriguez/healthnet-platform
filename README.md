@@ -93,7 +93,7 @@ quit
 ## Project Structure
 
 ```text
-.
+healthnet-platform
 ├── .github/workflows/ci.yml
 ├── data/
 │   ├── appointments.txt
